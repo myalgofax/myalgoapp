@@ -23,7 +23,7 @@ echo === Commit Complete ===
 
 REM Deploy (this assumes deploy script is correctly set up in package.json)
 echo === Deploying the app ===
-call npm run deploy
+REM call npm run deploy
 
 echo === Deployment Complete ===
 pause

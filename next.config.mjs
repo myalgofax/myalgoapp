@@ -9,7 +9,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  output: 'export',
   basePath: '/myalgoapp',
   trailingSlash: true,
 }
