@@ -7,7 +7,7 @@ IF NOT EXIST ".git" git init
 
 REM Stage and commit
 git add .
-git commit -m "first commit"
+git commit -m "upto login success added"
 
 REM Set branch
 git branch -M main

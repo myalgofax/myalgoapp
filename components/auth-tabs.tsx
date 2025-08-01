@@ -1,87 +1,137 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Eye, EyeOff, Github, Mail } from "lucide-react"
-import { login, signup } from "@/app/auth/actions"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useState, useEffect, useActionState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Eye, EyeOff, Github, Mail } from "lucide-react";
+import { login, signup } from "@/app/auth/actions";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useFormState, useFormStatus } from "react-dom";
+import { AuthFormState } from "@/types/api";
 
 interface AuthTabsProps {
-  defaultTab?: "login" | "signup"
+  defaultTab?: "login" | "signup";
 }
 
 export function AuthTabs({ defaultTab = "login" }: AuthTabsProps) {
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [currentTab, setCurrentTab] = useState(defaultTab)
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [currentTab, setCurrentTab] = useState(defaultTab);
+  const [loginState, loginAction] = useActionState<AuthFormState, FormData>(
+    login,
+    {status: 'idle'}
+  );
+  const [signupState, signupAction] = useActionState<AuthFormState, FormData>(
+    signup,
+    { status: 'idle' }
+  );
 
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const error = searchParams.get("error")
-  const success = searchParams.get("success")
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const error = searchParams.get("error");
+  const success = searchParams.get("success");
+
+ // Handle authentication results
+  useEffect(() => {
+    
+    if (loginState.status === 'success') {
+      // Store token securely
+      if (loginState.token) {
+        sessionStorage.setItem("loginTime", Date.now().toString())
+        sessionStorage.setItem("userToken", loginState.token);
+        // Set cookies if needed
+        document.cookie = `authToken=${loginState.token}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=lax`;
+      }
+      debugger
+      router.push("/user-dashboard");
+    } else if (loginState.status === 'error') {
+      // Handle errors
+      console.error("Login failed:", loginState.error);
+    }
+
+    if (signupState.status === 'success') {
+      router.push("/login?success=account_created");
+    }
+  }, [loginState, signupState, router]);
+  
 
   // Clear URL parameters when switching tabs or component mounts
   useEffect(() => {
+    
     if (error || success) {
       // Clear the URL parameters without page reload
-      const url = new URL(window.location.href)
-      url.searchParams.delete("error")
-      url.searchParams.delete("success")
-      router.replace(url.pathname, { scroll: false })
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      url.searchParams.delete("success");
+      router.replace(url.pathname, { scroll: false });
     }
-  }, [currentTab, error, success, router])
+  }, [currentTab, error, success, router]);
 
   const handleTabChange = (value: string) => {
-    setCurrentTab(value as "login" | "signup")
+    setCurrentTab(value as "login" | "signup");
     // Clear any existing errors when switching tabs
     if (error || success) {
-      const url = new URL(window.location.href)
-      url.searchParams.delete("error")
-      url.searchParams.delete("success")
-      router.replace(url.pathname, { scroll: false })
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      url.searchParams.delete("success");
+      router.replace(url.pathname, { scroll: false });
     }
-  }
+  };
 
   return (
     <div className="animate-in fade-in-50 duration-300">
-      <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+      <Tabs
+        value={currentTab}
+        onValueChange={handleTabChange}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-2 h-8 sm:h-10">
-          <TabsTrigger value="login" className="text-xs sm:text-sm transition-all">
+          <TabsTrigger
+            value="login"
+            className="text-xs sm:text-sm transition-all"
+          >
             Login
           </TabsTrigger>
-          <TabsTrigger value="signup" className="text-xs sm:text-sm transition-all">
+          <TabsTrigger
+            value="signup"
+            className="text-xs sm:text-sm transition-all"
+          >
             Sign Up
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="login" className="mt-2 sm:mt-4 animate-in fade-in-50 slide-in-from-right-4 duration-300">
+        <TabsContent
+          value="login"
+          className="mt-2 sm:mt-4 animate-in fade-in-50 slide-in-from-right-4 duration-300"
+        >
           <Card className="transition-all hover:shadow-md">
             <CardHeader className="space-y-1 pb-3 sm:pb-4">
-              <CardTitle className="text-lg sm:text-xl text-center">Sign in</CardTitle>
+              <CardTitle className="text-lg sm:text-xl text-center">
+                Sign in
+              </CardTitle>
               <CardDescription className="text-center text-xs sm:text-sm">
                 Enter your email and password
-                <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
-                  <strong>Demo Accounts:</strong>
-                  <br />
-                  admin@myalgofax.com / admin123
-                  <br />
-                  demo@demo.com / demo
-                  <br />
-                  test@test.com / test123
-                </div>
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
+            <CardContent className="space-y-1 sm:space-y-1 px-4 sm:px-6">
               {/* Error/Success Messages */}
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                   <p className="text-sm text-red-600 text-center">
-                    {error === "invalid_credentials" && "Invalid email or password. Please try again."}
-                    {error === "login_failed" && "Login failed. Please try again."}
+                    {error === "invalid_credentials" &&
+                      "Invalid email or password. Please try again."}
+                    {error === "login_failed" &&
+                      "Login failed. Please try again."}
                   </p>
                 </div>
               )}
@@ -89,7 +139,8 @@ export function AuthTabs({ defaultTab = "login" }: AuthTabsProps) {
               {success && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                   <p className="text-sm text-green-600 text-center">
-                    {success === "account_created" && "Account created successfully! Please sign in."}
+                    {success === "account_created" &&
+                      "Account created successfully! Please sign in."}
                   </p>
                 </div>
               )}
@@ -119,10 +170,12 @@ export function AuthTabs({ defaultTab = "login" }: AuthTabsProps) {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
                 </div>
               </div>
-              <form action={login} className="space-y-2 sm:space-y-3">
+              <form action={loginAction} className="space-y-1 sm:space-y-1">
                 <div className="space-y-1">
                   <Label htmlFor="login-email" className="text-xs sm:text-sm">
                     Email
@@ -137,7 +190,10 @@ export function AuthTabs({ defaultTab = "login" }: AuthTabsProps) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="login-password" className="text-xs sm:text-sm">
+                  <Label
+                    htmlFor="login-password"
+                    className="text-xs sm:text-sm"
+                  >
                     Password
                   </Label>
                   <div className="relative">
@@ -166,7 +222,11 @@ export function AuthTabs({ defaultTab = "login" }: AuthTabsProps) {
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1 sm:space-x-2">
-                    <input type="checkbox" id="remember" className="h-3 w-3 rounded border-gray-300" />
+                    <input
+                      type="checkbox"
+                      id="remember"
+                      className="h-3 w-3 rounded border-gray-300"
+                    />
                     <Label htmlFor="remember" className="text-xs">
                       Remember me
                     </Label>
@@ -175,29 +235,48 @@ export function AuthTabs({ defaultTab = "login" }: AuthTabsProps) {
                     Forgot password?
                   </Button>
                 </div>
-                <Button type="submit" className="w-full h-8 sm:h-9 text-sm transition-all hover:scale-[1.02]">
-                  Sign in
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    type="submit"
+                    className="flex-1 h-8 sm:h-9 text-sm transition-all hover:scale-[1.02]"
+                  >
+                    Login
+                  </Button>
+                  <Button
+                    type="reset"
+                    variant="outline"
+                    className="flex-1 h-8 sm:h-9 text-sm transition-all hover:scale-[1.02]"
+                  >
+                    Clear
+                  </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="signup" className="mt-2 sm:mt-4 animate-in fade-in-50 slide-in-from-left-4 duration-300">
+        <TabsContent
+          value="signup"
+          className="mt-2 sm:mt-4 animate-in fade-in-50 slide-in-from-left-4 duration-300"
+        >
           <Card className="transition-all hover:shadow-md">
             <CardHeader className="space-y-1 pb-3 sm:pb-4">
-              <CardTitle className="text-lg sm:text-xl text-center">Create account</CardTitle>
+              <CardTitle className="text-lg sm:text-xl text-center">
+                Create account
+              </CardTitle>
               <CardDescription className="text-center text-xs sm:text-sm">
                 Enter your information to create account
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
+            <CardContent className="space-y-1 sm:space-y-1 px-4 sm:px-6">
               {/* Error Messages for Signup */}
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                   <p className="text-sm text-red-600 text-center">
-                    {error === "passwords_dont_match" && "Passwords don't match. Please try again."}
-                    {error === "signup_failed" && "Signup failed. Please try again."}
+                    {error === "passwords_dont_match" &&
+                      "Passwords don't match. Please try again."}
+                    {error === "signup_failed" &&
+                      "Signup failed. Please try again."}
                   </p>
                 </div>
               )}
@@ -227,10 +306,12 @@ export function AuthTabs({ defaultTab = "login" }: AuthTabsProps) {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
                 </div>
               </div>
-              <form action={signup} className="space-y-2 sm:space-y-3">
+              <form action={signupAction} className="space-y-1 sm:space-y-1">
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div className="space-y-1">
                     <Label htmlFor="first-name" className="text-xs sm:text-sm">
@@ -271,7 +352,10 @@ export function AuthTabs({ defaultTab = "login" }: AuthTabsProps) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="signup-password" className="text-xs sm:text-sm">
+                  <Label
+                    htmlFor="signup-password"
+                    className="text-xs sm:text-sm"
+                  >
                     Password
                   </Label>
                   <div className="relative">
@@ -299,7 +383,10 @@ export function AuthTabs({ defaultTab = "login" }: AuthTabsProps) {
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="confirm-password" className="text-xs sm:text-sm">
+                  <Label
+                    htmlFor="confirm-password"
+                    className="text-xs sm:text-sm"
+                  >
                     Confirm password
                   </Label>
                   <div className="relative">
@@ -316,7 +403,9 @@ export function AuthTabs({ defaultTab = "login" }: AuthTabsProps) {
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-8 sm:h-9 px-2 sm:px-3 hover:bg-transparent transition-all"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                     >
                       {showConfirmPassword ? (
                         <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -327,26 +416,50 @@ export function AuthTabs({ defaultTab = "login" }: AuthTabsProps) {
                   </div>
                 </div>
                 <div className="flex items-start space-x-2">
-                  <input type="checkbox" id="terms" className="h-3 w-3 rounded border-gray-300 mt-0.5" required />
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    className="h-3 w-3 rounded border-gray-300 mt-0.5"
+                    required
+                  />
                   <Label htmlFor="terms" className="text-xs leading-tight">
                     I agree to the{" "}
-                    <Button variant="link" className="px-0 text-xs h-auto p-0 underline">
+                    <Button
+                      variant="link"
+                      className="px-0 text-xs h-auto p-0 underline"
+                    >
                       Terms of Service
                     </Button>{" "}
                     and{" "}
-                    <Button variant="link" className="px-0 text-xs h-auto p-0 underline">
+                    <Button
+                      variant="link"
+                      className="px-0 text-xs h-auto p-0 underline"
+                    >
                       Privacy Policy
                     </Button>
                   </Label>
                 </div>
-                <Button type="submit" className="w-full h-8 sm:h-9 text-sm transition-all hover:scale-[1.02]">
-                  Create account
-                </Button>
+
+                <div className="flex  space-x-2">
+                  <Button
+                    type="submit"
+                    className="flex-1 space-y-1 h-8 sm:h-9 text-sm transition-all hover:scale-[1.02]"
+                  >
+                    Create account
+                  </Button>
+                  <Button
+                    type="reset"
+                    variant="outline"
+                    className="flex-1 space-y-1 h-8 sm:h-9 text-sm transition-all hover:scale-[1.02]"
+                  >
+                    Clear
+                  </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

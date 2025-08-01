@@ -1,63 +1,70 @@
-"use server"
+// app/actions/auth.ts
+'use server'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { API_ENDPOINTS } from '@/config/apiEndpoints'
+import { postRequest } from '@/utils/apiClient'
+import type { ApiResponse, AuthResponseData, LoginResponse } from '@/types/api'
+import type { AuthFormState } from '@/types/api'
+import { setAuthToken } from '@/utils/authToken'
 
-import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
-
-export async function login(formData: FormData) {
-  const email = formData.get("email") as string
-  const password = formData.get("password") as string
-
-  // Dummy credentials for testing
-  const validCredentials = [
-    { email: "admin@myalgofax.com", password: "admin123" },
-    { email: "john@example.com", password: "password" },
-    { email: "demo@demo.com", password: "demo" },
-    { email: "test@test.com", password: "test123" },
-  ]
+export async function login(prevState: AuthFormState, formData: FormData): Promise<AuthFormState> {
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
 
   try {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Check if credentials match any dummy account
-    const isValidUser = validCredentials.some((cred) => cred.email === email && cred.password === password)
-
-    if (!isValidUser) {
-      redirect("/login?error=invalid_credentials")
+    const response = await postRequest<ApiResponse<LoginResponse>>(
+      API_ENDPOINTS.login, 
+      { email, password }
+    )
+  
+    console.log("response?.status",response)
+    if (response?.status !== 'success' || !response?.userToken) {
+      return { status: 'error', error: 'Invalid credentials' };
     }
-
-    console.log("Login successful:", { email })
-
-    // Simulate successful login - redirect to broker connection
-    revalidatePath("/", "layout")
-    redirect("/broker-setup")
+    return { 
+      status: 'success',
+      token: response.userToken,
+      user: response.data 
+    };
   } catch (error) {
-    redirect("/login?error=login_failed")
+    console.error('Login error:', error)
+     return { status: 'error', error: 'Login failed' };
   }
 }
 
-export async function signup(formData: FormData) {
-  const firstName = formData.get("firstName") as string
-  const lastName = formData.get("lastName") as string
-  const email = formData.get("email") as string
-  const password = formData.get("password") as string
-  const confirmPassword = formData.get("confirmPassword") as string
+export async function signup(prevState: AuthFormState, formData: FormData): Promise<AuthFormState> {
+  const firstName = formData.get('firstName') as string
+  const lastName = formData.get('lastName') as string
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+  const confirmPassword = formData.get('confirmPassword') as string
 
-  // Basic validation
   if (password !== confirmPassword) {
-    redirect("/register?error=passwords_dont_match")
+    return { status: 'error', error: 'passwords_dont_match' };
+
   }
 
   try {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const response = await postRequest<ApiResponse<AuthResponseData>>(
+      API_ENDPOINTS.signup,
+      {
+        name: `${firstName} ${lastName}`,
+        email,
+        password,
+      }
+    )
 
-    console.log("Signup attempt:", { firstName, lastName, email, password })
-
-    // Simulate successful signup
-    revalidatePath("/", "layout")
-    redirect("/login?success=account_created")
+    if (!response?.success) {
+       return { status: 'error', error: 'signup_failed' };
+      
+    }
+    return { 
+      status: 'success'
+    };
   } catch (error) {
-    redirect("/register?error=signup_failed")
+    console.error('Signup error:', error)
+    return { status: 'error', error: 'signup_failed' };
+    
   }
 }

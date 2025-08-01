@@ -9,6 +9,8 @@ import { AppSidebar } from "@/components/sidebar"
 import { ResponsiveNavbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { FooterAfterLogin } from "@/components/FooterAfterLogin"
+import {  removeAuthToken } from "@/utils/authToken"
+import logo from "@/asset/logo512-bg-remove.png";
 
 interface AppLayoutProviderProps {
   children: React.ReactNode
@@ -34,10 +36,12 @@ export function AppLayoutProvider({ children }: AppLayoutProviderProps) {
       "/set-alerts",
       "/position-adjustment",
     ]
+    debugger
     setIsBrokerConnected(tradingPages.includes(pathname))
   }, [pathname])
 
   const handleLogout = () => {
+      const token = removeAuthToken();
     setIsLoggedIn(false)
     setIsBrokerConnected(false)
     router.push("/")
@@ -51,7 +55,7 @@ export function AppLayoutProvider({ children }: AppLayoutProviderProps) {
     // Simple layout for auth pages
     return (
       <div className="flex flex-col min-h-screen">
-        <ResponsiveNavbar isLoggedIn={isLoggedIn} isBrokerConnected={isBrokerConnected} onLogout={handleLogout} />
+        <ResponsiveNavbar logo={logo} isLoggedIn={isLoggedIn} isBrokerConnected={isBrokerConnected} onLogout={handleLogout} />
         <main className="flex-1">
           <div className="min-h-full">{children}</div>
         </main>
@@ -64,7 +68,7 @@ export function AppLayoutProvider({ children }: AppLayoutProviderProps) {
     <SidebarProvider>
       <AppSidebar isLoggedIn={isLoggedIn} isBrokerConnected={isBrokerConnected} />
       <SidebarInset>
-        <ResponsiveNavbar isLoggedIn={isLoggedIn} isBrokerConnected={isBrokerConnected} onLogout={handleLogout} />
+        <ResponsiveNavbar logo={logo} isLoggedIn={isLoggedIn} isBrokerConnected={isBrokerConnected} onLogout={handleLogout} />
         <main className="flex-1 overflow-y-auto">
           <div className="min-h-full">{children}</div>
         </main>

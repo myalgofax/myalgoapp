@@ -1,5 +1,3 @@
-
-
 import { AuthTabs } from "@/components/auth-tabs"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
